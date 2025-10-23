@@ -1,0 +1,188 @@
+:root {
+  --primary-color: #0172ad;
+  --background-color: #ffffff;
+  --text-color: #212529;
+}
+
+body {
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  text-align: center;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 10px;
+}
+
+.container {
+  max-width: 600px;
+  width: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+
+button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: min(1.1rem, 4vw);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  background: var(--primary-color);
+  color: #fff;
+}
+
+button:hover {
+  background: #0288d1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(1, 114, 173, 0.3);
+}
+
+button:active {
+  background: #015a8a;
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(1, 114, 173, 0.2);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+h1 {
+  color: var(--primary-color);
+  font-size: min(2.5rem, 8vw);
+  margin: 1rem;
+}
+
+label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: min(1.1rem, 4vw);
+  color: var(--text-color);
+}
+
+input[type="number"] {
+  width: min(120px, 30vw);
+  padding: 12px;
+  border: 2px solid var(--primary-color);
+  border-radius: 8px;
+  font-size: min(1.1rem, 4vw);
+  text-align: center;
+  background: white;
+  transition: all 0.3s ease;
+  outline: none;
+  appearance: textfield;
+}
+
+input[type="number"]:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(1, 114, 173, 0.2);
+  background-color: #fff;
+}
+
+/* 移除数字输入框的上下箭头 */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Tasks页面特有样式 */
+table {
+  width: 100%;
+  max-width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+  table-layout: fixed;
+}
+
+th, td {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  font-size: min(1.1rem, 4vw);
+}
+
+tr:nth-child(odd) {
+  background-color: #f8f9fa;
+}
+
+th {
+  background: #e9ecef;
+  color: var(--primary-color);
+  text-align: center;
+  font-weight: 600;
+}
+
+tr:last-child td {
+  border-bottom: none;
+}
+
+.task-label {
+  margin-left: 0.5rem;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--primary-color);
+  width: 2em;
+  height: 2em;
+  vertical-align: middle;
+  cursor: pointer;
+  margin: 0 0.5em 0 0;
+}
+
+.row-title {
+  font-weight: bold;
+  color: var(--primary-color);
+  font-size: min(1.2rem, 4vw);
+}
+
+/* Timer页面特有样式 */
+.timer-circle {
+  width: min(300px, 80vw);
+  height: min(300px, 80vw);
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2rem auto;
+  position: relative;
+  border: 8px solid var(--primary-color);
+}
+
+#countdown {
+  font-size: min(4rem, 10vw);
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.input-group {
+  margin-bottom: 1.5rem;
+}
+
+.shortcut-hint {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  opacity: 0.8;
+  margin-top: 1rem;
+}
+
+.shortcut-key {
+  display: inline-block;
+  padding: 2px 6px;
+  background-color: #fff;
+  border: 1px solid var(--primary-color);
+  border-radius: 4px;
+  font-family: monospace;
+  margin: 0 2px;
+}

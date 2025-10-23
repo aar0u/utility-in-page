@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Timer</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Timer</h1>
+      <div class="input-group">
+        <label for="countdown-time">Set Focus Time (Minutes)</label>
+        <input
+          type="number"
+          id="countdown-time"
+          name="countdown-time"
+          min="1"
+          max="60"
+          step="1"
+          value="25"
+          autofocus
+        />
+      </div>
+
+      <div class="timer-circle">
+        <div id="countdown"></div>
+      </div>
+
+      <div class="controls">
+        <button id="start-button">Start Focus</button>
+        <button id="stop-button" disabled>Stop</button>
+      </div>
+
+      <div id="message" class="shortcut-hint">
+        Press <span class="shortcut-key">Alt</span> +
+        <span class="shortcut-key">S</span> to Start/Stop timer
+      </div>
+    </div>
+
+    <script>
+      let countdownInterval;
+      let audioCtx;
+      let oscillator;
+      const defaultMsg = document.getElementById("message").innerHTML;
+      const startButton = document.getElementById("start-button");
+      const stopButton = document.getElementById("stop-button");
+      const countdownTimeInput = document.getElementById("countdown-time");
+
+      startButton.addEventListener("click", startCountdown);
+      stopButton.addEventListener("click", stopTimer);
+      countdownTimeInput.addEventListener("input", function () {
+        if (!startButton.disabled) {
+          const minutes = parseFloat(this.value) || 0;
+          const minutesInt = Math.floor(minutes);
+          const seconds = Math.round((minutes - minutesInt) * 60);
+          document.getElementById("countdown").innerHTML = `${minutesInt
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+        }
+      });
+
+      // 触发一次输入事件来显示默认值
+      countdownTimeInput.dispatchEvent(new Event("input"));
+
+      document.addEventListener("keydown", function (event) {
+        // Alt + S 开始/停止
+        if (event.altKey && event.code === "KeyS") {
+          event.preventDefault(); // 防止触发浏览器默认行为
+          if (startButton.disabled) {
+            stopTimer();
+          } else {
+            startCountdown();
+          }
+        }
+      });
+
+      function startCountdown() {
+        const countdownTime =
+          60 * document.getElementById("countdown-time").value;
+
+        if (!countdownTime) {
+          document.getElementById("message").innerHTML =
+            "Please enter a countdown time.";
+          return;
+        }
+
+        let remainingText;
+        const startTime = Date.now();
+        const endTime = startTime + countdownTime * 1000;
+
+        startButton.disabled = true;
+        stopButton.disabled = false;
+
+        updateDisplay();
+        countdownInterval = setInterval(updateDisplay, 1000);
+
+        function updateDisplay() {
+          const currentTime = Date.now();
+          const remainingTime = Math.ceil((endTime - currentTime) / 1000);
+
+          if (remainingTime <= 0) {
+            clearInterval(countdownInterval);
+            remainingText = "Time's up!";
+            playSound();
+            showNotification("Time's up!");
+          } else {
+            const minutes = Math.floor(remainingTime / 60);
+            const seconds = remainingTime % 60;
+            remainingText = `${minutes.toString().padStart(2, "0")}:${seconds
+              .toString()
+              .padStart(2, "0")}`;
+          }
+          document.title = remainingText;
+          document.getElementById("countdown").innerHTML = remainingText;
+          document.getElementById("message").innerHTML = defaultMsg;
+        }
+      }
+
+      function playSound() {
+        if (audioCtx) {
+          audioCtx.close();
+        }
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [
+          { frequency: 523.25, duration: 0.1 }, // C5
+          { frequency: 659.25, duration: 0.1 }, // E5
+          { frequency: 783.99, duration: 0.2 }, // G5
+          { frequency: 1046.5, duration: 0.3 }, // C6
+        ];
+
+        let startTime = audioCtx.currentTime;
+        let totalDuration = notes.reduce((sum, note) => sum + note.duration, 0);
+        const loopInterval = 1.0;
+
+        function playNotes() {
+          if (!audioCtx) {
+            return;
+          }
+
+          notes.forEach((note) => {
+            oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(note.frequency, startTime);
+
+            gainNode.gain.setValueAtTime(0, startTime);
+            gainNode.gain.linearRampToValueAtTime(0.5, startTime + 0.01);
+            gainNode.gain.linearRampToValueAtTime(0, startTime + note.duration);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start(startTime);
+            oscillator.stop(startTime + note.duration);
+
+            startTime += note.duration;
+          });
+
+          // 循环播放（加入间隔时间）
+          startTime = audioCtx.currentTime + totalDuration + loopInterval;
+          if (!stopButton.disabled && audioCtx) {
+            // 添加 audioCtx 检查
+            setTimeout(playNotes, (totalDuration + loopInterval) * 1000);
+          }
+        }
+
+        playNotes();
+      }
+
+      function stopSound() {
+        if (audioCtx) {
+          audioCtx.close();
+          audioCtx = null;
+        }
+      }
+
+      function stopTimer() {
+        clearInterval(countdownInterval);
+        document.title = "Timer";
+        document.getElementById("countdown").innerHTML = "";
+        document.getElementById("message").innerHTML = defaultMsg;
+        stopSound();
+        startButton.disabled = false;
+        stopButton.disabled = true;
+        // 重新显示输入框的值
+        countdownTimeInput.dispatchEvent(new Event("input"));
+      }
+
+      function showNotification(text) {
+        if (!("Notification" in window)) {
+          alert("This browser does not support desktop notification");
+        } else if (Notification.permission === "granted") {
+          new Notification(text);
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then(function (permission) {
+            if (permission === "granted") {
+              new Notification(text);
+            }
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
