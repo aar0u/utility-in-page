@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta
@@ -54,7 +54,7 @@
       stopButton.addEventListener("click", stopTimer);
       countdownTimeInput.addEventListener("input", function () {
         if (!startButton.disabled) {
-          const minutes = parseFloat(this.value) || 0;
+          const minutes = Number.parseFloat(this.value) || 0;
           const minutesInt = Math.floor(minutes);
           const seconds = Math.round((minutes - minutesInt) * 60);
           document.getElementById("countdown").innerHTML = `${minutesInt
@@ -124,7 +124,7 @@
         if (audioCtx) {
           audioCtx.close();
         }
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        audioCtx = new (globalThis.AudioContext || globalThis.webkitAudioContext)();
         const notes = [
           { frequency: 523.25, duration: 0.1 }, // C5
           { frequency: 659.25, duration: 0.1 }, // E5
@@ -134,14 +134,14 @@
 
         let startTime = audioCtx.currentTime;
         let totalDuration = notes.reduce((sum, note) => sum + note.duration, 0);
-        const loopInterval = 1.0;
+        const loopInterval = 1;
 
         function playNotes() {
           if (!audioCtx) {
             return;
           }
 
-          notes.forEach((note) => {
+          for (const note of notes) {
             oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
 
@@ -159,7 +159,7 @@
             oscillator.stop(startTime + note.duration);
 
             startTime += note.duration;
-          });
+          }
 
           // 循环播放（加入间隔时间）
           startTime = audioCtx.currentTime + totalDuration + loopInterval;
@@ -192,7 +192,7 @@
       }
 
       function showNotification(text) {
-        if (!("Notification" in window)) {
+        if (!("Notification" in globalThis)) {
           alert("This browser does not support desktop notification");
         } else if (Notification.permission === "granted") {
           new Notification(text);
