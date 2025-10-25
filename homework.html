@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Checklist</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+      /* Inline styles specific to the page */
+      .container {
+        padding: 1rem;
+        overflow-x: auto;
+      }
+      button {
+        font-size: 2rem;
+        padding: 0.2rem 0.6rem;
+        margin: 0 0.3rem;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <table>
+        <tr>
+          <th></th>
+          <th contenteditable="true" id="boy-header">Boy</th>
+          <th contenteditable="true" id="girl-header">Girl</th>
+        </tr>
+        <tr>
+          <td class="row-title">Language</td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="boy-language" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('boy-language', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('boy-language', -1)">-</button>
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="girl-language" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('girl-language', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('girl-language', -1)">-</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="row-title">Math</td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="boy-math" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('boy-math', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('boy-math', -1)">-</button>
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="girl-math" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('girl-math', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('girl-math', -1)">-</button>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td class="row-title">Other</td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="boy-other" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('boy-other', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('boy-other', -1)">-</button>
+            </div>
+          </td>
+          <td>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <span id="girl-other" style="font-size:2.2rem; margin-bottom:0.5rem;">0</span>
+              <button onclick="changeCount('girl-other', 1)" style="margin-bottom:0.3rem;">+</button>
+              <button onclick="changeCount('girl-other', -1)">-</button>
+            </div>
+          </td>
+        </tr>
+      </table>
+      <button id="reset-btn" style="padding: 12px 24px; border: none; border-radius: 8px; font-size: min(1.1rem, 4vw); cursor: pointer; background: var(--primary-color); color: #fff; font-weight: 600; margin-top: 1rem;">Reset</button>
+    </div>
+  </body>
+    <script>
+      // Save and restore counts using localStorage
+      const headerIds = ["boy-header", "girl-header"];
+      const countIds = [
+        "boy-language", "girl-language",
+        "boy-math", "girl-math",
+        "boy-other", "girl-other"
+      ];
+
+      function saveData() {
+        const counts = {};
+        for (const id of countIds) {
+          const el = document.getElementById(id);
+          if (el) counts[id] = Number.parseInt(el.textContent, 10) || 0;
+        }
+        const headers = {};
+        for (const id of headerIds) {
+          const el = document.getElementById(id);
+          if (el) headers[id] = el.textContent;
+        }
+        localStorage.setItem("tasksData", JSON.stringify({ counts, headers }));
+      }
+
+
+
+      function restoreData() {
+        const data = JSON.parse(localStorage.getItem("tasksData") || "{}");
+        const counts = data.counts || {};
+        const headers = data.headers || {};
+        for (const id of countIds) {
+          const el = document.getElementById(id);
+          if (el && typeof counts[id] === "number") {
+            el.textContent = counts[id];
+          }
+        }
+        for (const id of headerIds) {
+          const el = document.getElementById(id);
+          if (el && typeof headers[id] === "string") {
+            el.textContent = headers[id];
+          }
+        }
+      }
+
+      // Sound effect setup
+      let audioCtx;
+      function playSoftClick() {
+        if (!audioCtx) audioCtx = new (globalThis.AudioContext || globalThis.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 300;
+        gain.gain.value = 0.08;
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.08);
+      }
+
+      function changeCount(id, delta) {
+        const el = document.getElementById(id);
+        if (el) {
+          let val = Number.parseInt(el.textContent, 10) || 0;
+          val += delta;
+          if (val < 0) val = 0;
+          el.textContent = val;
+          saveData();
+          playSoftClick();
+        }
+      }
+
+      function resetCounts() {
+        for (const id of countIds) {
+          const el = document.getElementById(id);
+          if (el) el.textContent = 0;
+        }
+        saveData();
+      }
+
+      globalThis.addEventListener("DOMContentLoaded", function() {
+        restoreData();
+        document.getElementById("reset-btn").addEventListener("click", resetCounts);
+        for (const id of headerIds) {
+          const el = document.getElementById(id);
+          if (el) {
+            el.addEventListener("input", saveData);
+          }
+        }
+      });
+    </script>
+</html>
