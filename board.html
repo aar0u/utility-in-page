@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Action Board</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
@@ -252,7 +252,7 @@
         background-color: #f5f5f5;
         border-radius: 8px;
         font-size: 0.85rem;
-        color: #757575;
+        color: #707070;
       }
 
       input[type="file"] {
@@ -471,9 +471,15 @@
         container.innerHTML = tasks.map((task, index) => {
            const isExpanded = expandedTaskId === task.id;
            const isSelected = selectedTaskIndex === index;
-           const preview = task.content || 'No content';
-           const isEmpty = !task.content;
-           const isEnded = task.endTime !== null;
+          const isEmpty = !task.content;
+          const isEnded = task.endTime !== null;
+          let preview;
+          if (task.content) {
+            const lines = task.content.split(/\r?\n/);
+            preview = lines[0] + (lines.length > 1 ? ' ...' : '');
+          } else {
+            preview = 'No content';
+          }
 
           return `
             <div class="task-item ${isSelected ? 'selected' : ''} ${isEnded ? 'ended' : ''}" id="task-${task.id}">
