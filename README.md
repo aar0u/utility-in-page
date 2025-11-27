@@ -15,3 +15,6 @@ A minimal static web utility suite with interactive HTML pages for [homework](ho
 ## Azure Web App
 - Do not use start_server.py for Azure Web App.
 - Instead, set the Start Command to `cd /home/site/wwwroot && python -m http.server $PORT --directory /home/site/wwwroot`.
+
+## AriaNg
+- Set `isInsecureProtocolDisabled` to `false` in `AriaNg-1.3.11.html` to disable HTTP protocol.
