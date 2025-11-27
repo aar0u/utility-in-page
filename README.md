@@ -11,3 +11,7 @@ A minimal static web utility suite with interactive HTML pages for [homework](ho
 1. Run `test-server.bat`.
 2. Open `http://localhost:8000` in your browser.
 3. Edit HTML files directly for changes.
+
+## Azure Web App
+- Do not use start_server.py for Azure Web App.
+- Instead, set the Start Command to `cd /home/site/wwwroot && python -m http.server $PORT --directory /home/site/wwwroot`.
