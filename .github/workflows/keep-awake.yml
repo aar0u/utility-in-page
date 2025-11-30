@@ -1,0 +1,25 @@
+name: Keep Azure Web App Awake
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'  # Ping every 15 minutes
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  ping-webapp:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Ping Azure Web App
+        run: |
+          # Send HTTP request to keep the web app awake
+          URL="https://sjoy.azurewebsites.net"
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $URL)
+          echo "Pinged $URL - Response Code: $RESPONSE"
+          if [ $RESPONSE -ge 200 ] && [ $RESPONSE -lt 400 ]; then
+            echo "Web app is awake and responding normally"
+          else
+            echo "Warning: Web app returned unexpected status code: $RESPONSE"
+          fi
