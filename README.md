@@ -18,3 +18,5 @@ A minimal static web utility suite with interactive HTML pages for [homework](ho
 
 ## AriaNg
 - Set `isInsecureProtocolDisabled` to `false` in `AriaNg-1.3.11.html` to disable HTTP protocol.
+- Set `defaultSecureProtocol` to `http` in `AriaNg-1.3.11.html` to use HTTP by default.
+- `e.rpcHost=i.defaultHost` in `AriaNg-1.3.11.html` to use the `localhost` as the RPC host.
