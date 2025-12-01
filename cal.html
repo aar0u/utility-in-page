@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日程</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* 日历特定样式 */
+      .calendar-container {
+        max-width: 600px;
+        width: 100%;
+        padding: 1rem 2rem 2rem;
+        box-sizing: border-box;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+        margin: 0 auto;
+      }
+
+      .calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* 调整标题间距 */
+      h1 {
+        margin: 0.5rem 0;
+      }
+
+      .calendar-nav {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .calendar-nav select {
+        padding: 8px 12px;
+        border: 2px solid var(--primary-color);
+        border-radius: 8px;
+        font-size: min(1.1rem, 4vw);
+        background: white;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s ease;
+      }
+
+      .calendar-nav select:focus {
+        box-shadow: 0 0 0 3px rgba(1, 114, 173, 0.2);
+      }
+
+      .calendar-grid {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      .calendar-grid th {
+        background-color: #f8f9fa;
+        color: var(--primary-color);
+        font-weight: 600;
+        padding: 0.8rem 0.5rem;
+        text-align: center;
+        border-bottom: 2px solid #e9ecef;
+      }
+
+      .calendar-grid td {
+        padding: 0.5rem 0.3rem;
+        text-align: center;
+        border: 1px solid #eee;
+        vertical-align: top;
+        min-height: 60px;
+        position: relative;
+        transition: all 0.3s ease;
+        cursor: pointer;
+      }
+
+      .calendar-grid td:hover {
+        background-color: #f8f9fa;
+        transform: scale(1.05);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 1;
+      }
+
+      .calendar-day {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: 70px;
+      }
+
+      .solar-day {
+        font-size: min(1.2rem, 5vw);
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+
+      .lunar-day {
+        font-size: min(0.8rem, 3vw);
+        color: #666;
+        margin-bottom: 2px;
+      }
+
+      .festival {
+        font-size: min(0.7rem, 2.5vw);
+        color: #d32f2f;
+        font-weight: 500;
+        background-color: #fff3f3;
+        padding: 2px 4px;
+        border-radius: 4px;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .other-month {
+        opacity: 0.3;
+      }
+
+      .today {
+        background-color: rgba(1, 114, 173, 0.1);
+        font-weight: bold;
+        border-radius: 8px;
+      }
+
+      .today .solar-day {
+        color: var(--primary-color);
+        position: relative;
+      }
+
+      .today .solar-day::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 3px;
+        background-color: var(--primary-color);
+        border-radius: 2px;
+      }
+
+      @media (max-width: 600px) {
+        .calendar-container {
+          padding: 1rem;
+        }
+
+        .calendar-header {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .calendar-nav {
+          justify-content: space-between;
+        }
+
+        .calendar-day {
+          min-height: 50px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="calendar-container">
+      <h1>日程</h1>
+
+      <div class="calendar-header">
+        <div class="calendar-nav">
+          <button id="prev-month">&lt;</button>
+          <select id="year-select"></select>
+          <select id="month-select"></select>
+          <button id="next-month">&gt;</button>
+        </div>
+        <button id="today-btn">今天</button>
+      </div>
+
+      <table class="calendar-grid">
+        <thead>
+          <tr>
+            <th>日</th>
+            <th>一</th>
+            <th>二</th>
+            <th>三</th>
+            <th>四</th>
+            <th>五</th>
+            <th>六</th>
+          </tr>
+        </thead>
+        <tbody id="calendar-body">
+          <!-- 日历内容将通过JavaScript动态生成 -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 引入农历转换库 -->
+    <script src="js/js-calendar-converter.js"></script>
+
+    <script>
+      // 当前显示的年月
+      let currentDate = new Date();
+      let currentYear = currentDate.getFullYear();
+      let currentMonth = currentDate.getMonth(); // 0-11
+
+      // 节日数据
+      const festivals = {
+        // 公历节日（固定日期）
+        solar: {
+          "1-1": "新年",
+          "2-14": "情人节",
+          "3-16": "生日",
+          "5-1": "劳动节",
+          "6-1": "儿童节",
+          "8-9": "坡国庆节",
+          "9-7": "生日",
+          "10-1": "中国庆节",
+          "10-26": "生日",
+          "10-31": "万圣节",
+          "12-25": "圣诞节",
+        },
+        // 农历节日
+        lunar: {
+          "1-1": "春节",
+          "1-15": "元宵节",
+          "5-5": "端午节",
+          "7-7": "七夕节",
+          "8-13": "生日",
+          "8-15": "中秋节",
+          "9-19": "生日",
+          "12-30": "除夕",
+        },
+        // 动态节日（基于特定规则计算）
+        dynamic: {
+          // 母亲节：每年5月的第二个星期日
+          "mothers-day": {
+            name: "母亲节",
+            month: 5,
+            week: 2, // 第几个星期
+            day: 0, // 星期几 (0=星期日, 1=星期一, ..., 6=星期六)
+          },
+          // 父亲节：每年6月的第三个星期日
+          "fathers-day": {
+            name: "父亲节",
+            month: 6,
+            week: 3, // 第三个星期
+            day: 0, // 星期日
+          },
+          // Good Friday：复活节前的星期五
+          "good-friday": {
+            name: "Good Friday",
+            type: "easter-relative", // 特殊类型：相对于复活节
+            offset: -2, // 复活节前的2天（星期五）
+          },
+        },
+      };
+
+      // 初始化年份和月份选择器
+      function initSelectors() {
+        const yearSelect = document.getElementById("year-select");
+        const monthSelect = document.getElementById("month-select");
+
+        // 生成年份选项（从1980年开始到2050年）
+        for (let year = 1980; year <= 2050; year++) {
+          const option = document.createElement("option");
+          option.value = year;
+          option.textContent = year + "年";
+          if (year === currentYear) {
+            option.selected = true;
+          }
+          yearSelect.appendChild(option);
+        }
+
+        // 生成月份选项
+        for (let month = 0; month < 12; month++) {
+          const option = document.createElement("option");
+          option.value = month;
+          option.textContent = month + 1 + "月";
+          if (month === currentMonth) {
+            option.selected = true;
+          }
+          monthSelect.appendChild(option);
+        }
+
+        // 添加事件监听器
+        yearSelect.addEventListener("change", () => {
+          currentYear = parseInt(yearSelect.value);
+          renderCalendar();
+        });
+
+        monthSelect.addEventListener("change", () => {
+          currentMonth = parseInt(monthSelect.value);
+          renderCalendar();
+        });
+      }
+
+      // 初始化导航按钮
+      function initNavButtons() {
+        document.getElementById("prev-month").addEventListener("click", () => {
+          currentMonth--;
+          if (currentMonth < 0) {
+            currentMonth = 11;
+            currentYear--;
+          }
+          updateSelectors();
+          renderCalendar();
+        });
+
+        document.getElementById("next-month").addEventListener("click", () => {
+          currentMonth++;
+          if (currentMonth > 11) {
+            currentMonth = 0;
+            currentYear++;
+          }
+          updateSelectors();
+          renderCalendar();
+        });
+
+        document.getElementById("today-btn").addEventListener("click", () => {
+          currentDate = new Date();
+          currentYear = currentDate.getFullYear();
+          currentMonth = currentDate.getMonth();
+          updateSelectors();
+          renderCalendar();
+        });
+      }
+
+      // 更新选择器的值
+      function updateSelectors() {
+        document.getElementById("year-select").value = currentYear;
+        document.getElementById("month-select").value = currentMonth;
+      }
+
+      // 计算复活节日期（西方复活节，使用格里高利历算法）
+      function calculateEaster(year) {
+        // 使用Anonymous Gregorian算法计算复活节
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const k = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - k) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        
+        return { month: month, day: day };
+      }
+
+      // 计算某月第几个星期几的日期
+      function calculateNthWeekdayOfMonth(year, month, week, dayOfWeek) {
+        // 获取月份第一天是星期几
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        
+        // 计算第一个指定星期几的日期
+        let firstDayOfMonth = (dayOfWeek - firstDay + 7) % 7 + 1;
+        
+        // 计算第n个指定星期几的日期
+        const day = firstDayOfMonth + (week - 1) * 7;
+        
+        return day;
+      }
+
+      // 获取动态节日
+      function getDynamicFestival(year, month, day) {
+        for (const [key, festival] of Object.entries(festivals.dynamic)) {
+          if (festival.type === "easter-relative") {
+            // 处理相对于复活节的节日
+            const easter = calculateEaster(year);
+            const easterDate = new Date(year, easter.month - 1, easter.day);
+            const festivalDate = new Date(easterDate);
+            festivalDate.setDate(easterDate.getDate() + festival.offset);
+            
+            if (festivalDate.getMonth() + 1 === month && festivalDate.getDate() === day) {
+              return festival.name;
+            }
+          } else {
+            // 处理基于月份和星期的节日
+            if (festival.month === month) {
+              const festivalDay = calculateNthWeekdayOfMonth(year, month, festival.week, festival.day);
+              if (festivalDay === day) {
+                return festival.name;
+              }
+            }
+          }
+        }
+        return "";
+      }
+
+      // 获取公历日期对应的节日
+      function getSolarFestival(year, month, day) {
+        const key = `${month + 1}-${day}`;
+        const fixedFestival = festivals.solar[key] || "";
+        const dynamicFestival = getDynamicFestival(year, month + 1, day);
+        return dynamicFestival || fixedFestival;
+      }
+
+      // 获取农历日期对应的节日
+      function getLunarFestival(lunarDate) {
+        const key = `${lunarDate.lMonth}-${lunarDate.lDay}`;
+        return festivals.lunar[key] || "";
+      }
+
+      // 渲染日历
+      function renderCalendar() {
+        const calendarBody = document.getElementById("calendar-body");
+        calendarBody.innerHTML = "";
+
+        // 获取当月第一天是星期几
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        // 获取当月的天数
+        const daysInMonth = new Date(
+          currentYear,
+          currentMonth + 1,
+          0
+        ).getDate();
+        // 获取上个月的天数
+        const daysInPrevMonth = new Date(
+          currentYear,
+          currentMonth,
+          0
+        ).getDate();
+
+        // 当前日期
+        const today = new Date();
+        const isCurrentMonth =
+          today.getFullYear() === currentYear &&
+          today.getMonth() === currentMonth;
+
+        let dayCount = 1;
+        let prevMonthDayCount = daysInPrevMonth - firstDay + 1;
+        let nextMonthDayCount = 1;
+
+        // 生成6行7列的日历网格
+        for (let i = 0; i < 6; i++) {
+          const row = document.createElement("tr");
+
+          for (let j = 0; j < 7; j++) {
+            const cell = document.createElement("td");
+            const dayElement = document.createElement("div");
+            dayElement.className = "calendar-day";
+
+            // 上个月的日期
+            if (i === 0 && j < firstDay) {
+              const date = prevMonthDayCount;
+              const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+              const prevYear =
+                currentMonth === 0 ? currentYear - 1 : currentYear;
+
+              // 获取农历日期
+              const lunarDate = calendar.solar2lunar(
+                prevYear,
+                prevMonth + 1,
+                date
+              );
+
+              dayElement.innerHTML = `
+                            <div class="solar-day">${date}</div>
+                            <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
+                        `;
+
+              cell.appendChild(dayElement);
+              cell.classList.add("other-month");
+              prevMonthDayCount++;
+            }
+            // 当月的日期
+            else if (dayCount <= daysInMonth) {
+              // 获取农历日期
+              const lunarDate = calendar.solar2lunar(
+                currentYear,
+                currentMonth + 1,
+                dayCount
+              );
+
+              // 检查节日
+              const solarFestival = getSolarFestival(
+                currentYear,
+                currentMonth,
+                dayCount
+              );
+              const lunarFestival = getLunarFestival(lunarDate);
+              const festival = solarFestival || lunarFestival;
+
+              dayElement.innerHTML = `
+                            <div class="solar-day">${dayCount}</div>
+                            <div class="lunar-day">${lunarDate.IMonthCn}${
+                lunarDate.IDayCn
+              }</div>
+                            ${
+                              festival
+                                ? `<div class="festival">${festival}</div>`
+                                : ""
+                            }
+                        `;
+
+              cell.appendChild(dayElement);
+
+              // 标记今天
+              if (isCurrentMonth && dayCount === today.getDate()) {
+                cell.classList.add("today");
+              }
+
+              dayCount++;
+            }
+            // 下个月的日期
+            else {
+              const date = nextMonthDayCount;
+              const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+              const nextYear =
+                currentMonth === 11 ? currentYear + 1 : currentYear;
+
+              // 获取农历日期
+              const lunarDate = calendar.solar2lunar(
+                nextYear,
+                nextMonth + 1,
+                date
+              );
+
+              dayElement.innerHTML = `
+                            <div class="solar-day">${date}</div>
+                            <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
+                        `;
+
+              cell.appendChild(dayElement);
+              cell.classList.add("other-month");
+              nextMonthDayCount++;
+            }
+
+            row.appendChild(cell);
+          }
+
+          calendarBody.appendChild(row);
+
+          // 如果已经渲染完当月所有日期，可以提前结束
+          if (dayCount > daysInMonth && nextMonthDayCount > 1) {
+            break;
+          }
+        }
+      }
+
+      // 初始化应用
+      function initApp() {
+        initSelectors();
+        initNavButtons();
+        renderCalendar();
+      }
+
+      // 页面加载完成后初始化
+      window.addEventListener("DOMContentLoaded", initApp);
+    </script>
+  </body>
+</html>
