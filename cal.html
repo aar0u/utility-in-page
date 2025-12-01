@@ -105,6 +105,11 @@
         margin-bottom: 2px;
       }
 
+      .lunar-day.loading {
+        color: #bbb;
+        font-style: italic;
+      }
+
       .festival {
         font-size: min(0.7rem, 2.5vw);
         color: #d32f2f;
@@ -197,14 +202,28 @@
       </table>
     </div>
 
-    <!-- 引入农历转换库 -->
-    <script src="js/js-calendar-converter.js"></script>
+    <!-- 引入农历转换库 - 改为异步加载 -->
+    <script src="js/js-calendar-converter.js" async onload="onLunarCalendarLoaded()"></script>
 
     <script>
       // 当前显示的年月
       let currentDate = new Date();
       let currentYear = currentDate.getFullYear();
       let currentMonth = currentDate.getMonth(); // 0-11
+      
+      // 复活节日期缓存
+      const easterCache = {};
+      
+      // 标记公历是否已渲染完成和农历库是否已加载
+      let solarCalendarRendered = false;
+      let lunarCalendarLoaded = false;
+      
+      // 检查是否可以更新农历和假日信息
+      function checkAndUpdateLunarInfo() {
+        if (solarCalendarRendered && lunarCalendarLoaded) {
+          updateLunarAndFestivals();
+        }
+      }
 
       // 节日数据
       const festivals = {
@@ -336,6 +355,11 @@
 
       // 计算复活节日期（西方复活节，使用格里高利历算法）
       function calculateEaster(year) {
+        // 检查缓存中是否已有该年的复活节日期
+        if (easterCache[year]) {
+          return easterCache[year];
+        }
+        
         // 使用Anonymous Gregorian算法计算复活节
         const a = year % 19;
         const b = Math.floor(year / 100);
@@ -352,7 +376,12 @@
         const month = Math.floor((h + l - 7 * m + 114) / 31);
         const day = ((h + l - 7 * m + 114) % 31) + 1;
         
-        return { month: month, day: day };
+        const result = { month: month, day: day };
+        
+        // 存入缓存
+        easterCache[year] = result;
+        
+        return result;
       }
 
       // 计算某月第几个星期几的日期
@@ -409,7 +438,7 @@
         return festivals.lunar[key] || "";
       }
 
-      // 渲染日历
+      // 渲染日历 - 第一阶段：只渲染公历部分
       function renderCalendar() {
         const calendarBody = document.getElementById("calendar-body");
         calendarBody.innerHTML = "";
@@ -451,21 +480,11 @@
             // 上个月的日期
             if (i === 0 && j < firstDay) {
               const date = prevMonthDayCount;
-              const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-              const prevYear =
-                currentMonth === 0 ? currentYear - 1 : currentYear;
-
-              // 获取农历日期
-              const lunarDate = calendar.solar2lunar(
-                prevYear,
-                prevMonth + 1,
-                date
-              );
-
+              
               dayElement.innerHTML = `
-                            <div class="solar-day">${date}</div>
-                            <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
-                        `;
+                <div class="solar-day">${date}</div>
+                <div class="lunar-day loading">...</div>
+              `;
 
               cell.appendChild(dayElement);
               cell.classList.add("other-month");
@@ -473,33 +492,10 @@
             }
             // 当月的日期
             else if (dayCount <= daysInMonth) {
-              // 获取农历日期
-              const lunarDate = calendar.solar2lunar(
-                currentYear,
-                currentMonth + 1,
-                dayCount
-              );
-
-              // 检查节日
-              const solarFestival = getSolarFestival(
-                currentYear,
-                currentMonth,
-                dayCount
-              );
-              const lunarFestival = getLunarFestival(lunarDate);
-              const festival = solarFestival || lunarFestival;
-
               dayElement.innerHTML = `
-                            <div class="solar-day">${dayCount}</div>
-                            <div class="lunar-day">${lunarDate.IMonthCn}${
-                lunarDate.IDayCn
-              }</div>
-                            ${
-                              festival
-                                ? `<div class="festival">${festival}</div>`
-                                : ""
-                            }
-                        `;
+                <div class="solar-day">${dayCount}</div>
+                <div class="lunar-day loading">...</div>
+              `;
 
               cell.appendChild(dayElement);
 
@@ -513,21 +509,11 @@
             // 下个月的日期
             else {
               const date = nextMonthDayCount;
-              const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
-              const nextYear =
-                currentMonth === 11 ? currentYear + 1 : currentYear;
-
-              // 获取农历日期
-              const lunarDate = calendar.solar2lunar(
-                nextYear,
-                nextMonth + 1,
-                date
-              );
-
+              
               dayElement.innerHTML = `
-                            <div class="solar-day">${date}</div>
-                            <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
-                        `;
+                <div class="solar-day">${date}</div>
+                <div class="lunar-day loading">...</div>
+              `;
 
               cell.appendChild(dayElement);
               cell.classList.add("other-month");
@@ -544,13 +530,146 @@
             break;
           }
         }
+        
+        // 标记公历已渲染完成
+        solarCalendarRendered = true;
+        
+        // 检查是否可以更新农历和假日信息
+        checkAndUpdateLunarInfo();
+      }
+      
+      // 更新农历和假日信息 - 第二阶段：添加农历和假日信息
+      function updateLunarAndFestivals() {
+        const cells = document.querySelectorAll("#calendar-body td");
+        
+        // 获取当月第一天是星期几
+        const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+        // 获取当月的天数
+        const daysInMonth = new Date(
+          currentYear,
+          currentMonth + 1,
+          0
+        ).getDate();
+        // 获取上个月的天数
+        const daysInPrevMonth = new Date(
+          currentYear,
+          currentMonth,
+          0
+        ).getDate();
+
+        let dayCount = 1;
+        let prevMonthDayCount = daysInPrevMonth - firstDay + 1;
+        let nextMonthDayCount = 1;
+
+        cells.forEach((cell, index) => {
+          const dayElement = cell.querySelector(".calendar-day");
+          if (!dayElement) return;
+          
+          // 上个月的日期
+          if (index < firstDay) {
+            const date = prevMonthDayCount;
+            const prevMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+            const prevYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+
+            // 获取农历日期
+            const lunarDate = calendar.solar2lunar(
+              prevYear,
+              prevMonth + 1,
+              date
+            );
+            
+            // 检查节日
+            const solarFestival = getSolarFestival(
+              prevYear,
+              prevMonth,
+              date
+            );
+            const lunarFestival = getLunarFestival(lunarDate);
+            const festival = solarFestival || lunarFestival;
+
+            dayElement.innerHTML = `
+              <div class="solar-day">${date}</div>
+              <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
+              ${festival ? `<div class="festival">${festival}</div>` : ""}
+            `;
+            
+            prevMonthDayCount++;
+          }
+          // 当月的日期
+          else if (dayCount <= daysInMonth) {
+            // 获取农历日期
+            const lunarDate = calendar.solar2lunar(
+              currentYear,
+              currentMonth + 1,
+              dayCount
+            );
+
+            // 检查节日
+            const solarFestival = getSolarFestival(
+              currentYear,
+              currentMonth,
+              dayCount
+            );
+            const lunarFestival = getLunarFestival(lunarDate);
+            const festival = solarFestival || lunarFestival;
+
+            dayElement.innerHTML = `
+              <div class="solar-day">${dayCount}</div>
+              <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
+              ${festival ? `<div class="festival">${festival}</div>` : ""}
+            `;
+            
+            dayCount++;
+          }
+          // 下个月的日期
+          else {
+            const date = nextMonthDayCount;
+            const nextMonth = currentMonth === 11 ? 0 : currentMonth + 1;
+            const nextYear = currentMonth === 11 ? currentYear + 1 : currentYear;
+
+            // 获取农历日期
+            const lunarDate = calendar.solar2lunar(
+              nextYear,
+              nextMonth + 1,
+              date
+            );
+            
+            // 检查节日
+            const solarFestival = getSolarFestival(
+              nextYear,
+              nextMonth,
+              date
+            );
+            const lunarFestival = getLunarFestival(lunarDate);
+            const festival = solarFestival || lunarFestival;
+
+            dayElement.innerHTML = `
+              <div class="solar-day">${date}</div>
+              <div class="lunar-day">${lunarDate.IMonthCn}${lunarDate.IDayCn}</div>
+              ${festival ? `<div class="festival">${festival}</div>` : ""}
+            `;
+            
+            nextMonthDayCount++;
+          }
+        });
       }
 
       // 初始化应用
       function initApp() {
         initSelectors();
         initNavButtons();
+        
+        // 立即渲染公历部分
         renderCalendar();
+      }
+      
+      // 农历库加载完成后的回调函数
+      function onLunarCalendarLoaded() {
+        // 标记农历库已加载完成
+        lunarCalendarLoaded = true;
+        
+        // 检查是否可以更新农历和假日信息
+        checkAndUpdateLunarInfo();
       }
 
       // 页面加载完成后初始化
