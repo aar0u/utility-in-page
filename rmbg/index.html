@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhotoCut - AI Background Removal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">✂️</div>
+            </div>
+            <h1>PhotoCut</h1>
+            <p class="subtitle">AI-Powered Background Removal • Zero Server • Instant Results</p>
+        </header>
+
+        <div class="main-content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="upload-icon">🖼️</div>
+                    <div class="upload-text">Drop your image here</div>
+                    <div class="upload-hint">or click to browse • JPG, PNG, WEBP • Max 10MB</div>
+                    <input type="file" id="fileInput" class="file-input" accept="image/jpeg,image/png,image/webp">
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <div id="statusContainer"></div>
+                
+                <div class="comparison-container">
+                    <div class="preview-card">
+                        <div class="preview-label">Original Image</div>
+                        <div class="image-container">
+                            <img id="originalImage" class="preview-image" alt="Original">
+                        </div>
+                    </div>
+                    <div class="preview-card">
+                        <div class="preview-label">Background Removed</div>
+                        <div class="image-container" id="resultContainer">
+                            <img id="resultImage" class="preview-image" alt="Result">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <div class="control-group">
+                        <span class="control-label">Background:</span>
+                        <div class="bg-options">
+                            <div class="bg-option transparent active" data-bg="transparent" title="Transparent"></div>
+                            <div class="bg-option white" data-bg="white" title="White"></div>
+                            <div class="bg-option black" data-bg="black" title="Black"></div>
+                        </div>
+                    </div>
+                    <div class="btn-group" style="margin-left: auto;">
+                        <button class="btn btn-primary" id="downloadBtn">
+                            <span>💾</span>
+                            <span>Download PNG</span>
+                        </button>
+                        <button class="btn btn-secondary" id="newImageBtn">
+                            <span>🔄</span>
+                            <span>New Image</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">Processing your image...</div>
+            <div class="loading-subtext">This may take a moment</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+</body>
+</html>

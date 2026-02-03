@@ -1,0 +1,18 @@
+{
+  "name": "photocut",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "AI-powered background removal tool",
+  "scripts": {
+    "dev": "vite",
+    "build": "bash download-models.sh && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@imgly/background-removal": "^1.7.0"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0"
+  },
+  "license": "MIT"
+}
