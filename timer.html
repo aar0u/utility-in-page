@@ -13,17 +13,42 @@
     <div class="container">
       <h1>Timer</h1>
       <div class="input-group">
-        <label for="countdown-time">Set Focus Time (Minutes)</label>
-        <input
-          type="number"
-          id="countdown-time"
-          name="countdown-time"
-          min="1"
-          max="60"
-          step="1"
-          value="25"
-          autofocus
-        />
+        <div class="time-inputs">
+          <div class="time-input-wrapper">
+            <label for="countdown-minutes">Min</label>
+            <input
+              type="number"
+              id="countdown-minutes"
+              name="countdown-minutes"
+              min="0"
+              max="60"
+              step="1"
+              value="25"
+              data-default="25"
+            />
+          </div>
+          <span class="time-separator">:</span>
+          <div class="time-input-wrapper">
+            <label for="countdown-seconds">Sec</label>
+            <input
+              type="number"
+              id="countdown-seconds"
+              name="countdown-seconds"
+              min="0"
+              max="59"
+              step="1"
+              value="0"
+              data-default="0"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="quick-select">
+        <button class="quick-btn" data-minutes="5" data-seconds="0">5 min</button>
+        <button class="quick-btn" data-minutes="25" data-seconds="0">25 min</button>
+        <button class="quick-btn" data-minutes="0" data-seconds="30">30 sec</button>
+        <button class="quick-btn" data-minutes="1" data-seconds="0">1 min</button>
       </div>
 
       <div class="timer-circle">
@@ -36,8 +61,7 @@
       </div>
 
       <div id="message" class="shortcut-hint">
-        Press <span class="shortcut-key">Alt</span> +
-        <span class="shortcut-key">S</span> to Start/Stop timer
+        Press <span class="shortcut-key">Space</span> to Start/Stop timer
       </div>
     </div>
 
@@ -48,28 +72,55 @@
       const defaultMsg = document.getElementById("message").innerHTML;
       const startButton = document.getElementById("start-button");
       const stopButton = document.getElementById("stop-button");
-      const countdownTimeInput = document.getElementById("countdown-time");
+      const countdownMinutesInput = document.getElementById("countdown-minutes");
+      const countdownSecondsInput = document.getElementById("countdown-seconds");
+      const quickButtons = document.querySelectorAll(".quick-btn");
 
       startButton.addEventListener("click", startCountdown);
       stopButton.addEventListener("click", stopTimer);
-      countdownTimeInput.addEventListener("input", function () {
+
+      function handleFocus() {
+        const defaultMinutes = countdownMinutesInput.dataset.default;
+        const defaultSeconds = countdownSecondsInput.dataset.default;
+        if (countdownMinutesInput.value === defaultMinutes && countdownSecondsInput.value === defaultSeconds) {
+          countdownMinutesInput.value = "";
+          countdownSecondsInput.value = "";
+        }
+      }
+
+      function handleInput() {
         if (!startButton.disabled) {
-          const minutes = Number.parseFloat(this.value) || 0;
+          const minutes = Number.parseFloat(countdownMinutesInput.value) || 0;
           const minutesInt = Math.floor(minutes);
-          const seconds = Math.round((minutes - minutesInt) * 60);
+          const seconds = Number.parseFloat(countdownSecondsInput.value) || 0;
+          const secondsInt = Math.floor(seconds);
           document.getElementById("countdown").innerHTML = `${minutesInt
             .toString()
-            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+            .padStart(2, "0")}:${secondsInt.toString().padStart(2, "0")}`;
         }
+      }
+
+      countdownMinutesInput.addEventListener("focus", handleFocus);
+      countdownSecondsInput.addEventListener("focus", handleFocus);
+      countdownMinutesInput.addEventListener("input", handleInput);
+      countdownSecondsInput.addEventListener("input", handleInput);
+
+      quickButtons.forEach((btn) => {
+        btn.addEventListener("click", function () {
+          const minutes = this.dataset.minutes;
+          const seconds = this.dataset.seconds;
+          countdownMinutesInput.value = minutes;
+          countdownSecondsInput.value = seconds;
+          countdownMinutesInput.dispatchEvent(new Event("input"));
+        });
       });
 
       // 触发一次输入事件来显示默认值
-      countdownTimeInput.dispatchEvent(new Event("input"));
+      countdownMinutesInput.dispatchEvent(new Event("input"));
 
       document.addEventListener("keydown", function (event) {
-        // Alt + S 开始/停止
-        if (event.altKey && event.code === "KeyS") {
-          event.preventDefault(); // 防止触发浏览器默认行为
+        if (event.code === "Space") {
+          event.preventDefault();
           if (startButton.disabled) {
             stopTimer();
           } else {
@@ -79,10 +130,11 @@
       });
 
       function startCountdown() {
-        const countdownTime =
-          60 * document.getElementById("countdown-time").value;
+        const minutes = Number.parseInt(countdownMinutesInput.value) || 0;
+        const seconds = Number.parseInt(countdownSecondsInput.value) || 0;
+        const countdownTime = minutes * 60 + seconds;
 
-        if (!countdownTime) {
+        if (countdownTime <= 0) {
           document.getElementById("message").innerHTML =
             "Please enter a countdown time.";
           return;
@@ -134,7 +186,7 @@
 
         let startTime = audioCtx.currentTime;
         let totalDuration = notes.reduce((sum, note) => sum + note.duration, 0);
-        const loopInterval = 1;
+        const loopInterval = 3;
 
         function playNotes() {
           if (!audioCtx) {
@@ -188,7 +240,7 @@
         startButton.disabled = false;
         stopButton.disabled = true;
         // 重新显示输入框的值
-        countdownTimeInput.dispatchEvent(new Event("input"));
+        countdownMinutesInput.dispatchEvent(new Event("input"));
       }
 
       function showNotification(text) {
