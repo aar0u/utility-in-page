@@ -20,6 +20,7 @@ export default defineConfig({
     exclude: ['@imgly/background-removal']
   },
   server: {
+    host: '0.0.0.0',
     port: 5173,
     open: true
   }
