@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpotJoy — Find Your Joy</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Syne:wght@800&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  :root { --fg: #fff; --fg-dim: rgba(255,255,255,0.5); --cyan: #00f0ff; }
+  body { background:#000; color:var(--fg); font-family:'Outfit',sans-serif; overflow:hidden; }
+  #canvas { position:fixed; inset:0; z-index:0; cursor: crosshair; }
+  .ui { position:relative; z-index:2; height:100vh; display:flex; flex-direction:column; pointer-events:none; }
+  nav, footer { padding:30px 50px; display:flex; justify-content:space-between; align-items:center; }
+  .logo { font-family:'Syne'; font-weight:800; font-size:24px; display:flex; align-items:center; gap:12px; pointer-events:auto; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--cyan); box-shadow:0 0 15px var(--cyan); animation: p 2s infinite; }
+  @keyframes p { 50% { transform:scale(1.4); opacity:0.6; } }
+  a { color:var(--fg-dim); text-decoration:none; pointer-events:auto; transition:0.3s; font-size:14px; letter-spacing: 1px; text-transform: uppercase; }
+  a:hover { color:#fff; text-shadow:0 0 10px var(--cyan); }
+  .hero { flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; padding:20px; }
+  h1 { font-family:'Syne'; font-size:clamp(40px, 8vw, 100px); line-height:1; margin-bottom:24px; }
+  .glow { background:linear-gradient(135deg, #00f0ff, #ff00c8, #ffe600, #00f0ff); background-size: 200%; animation: drift 5s linear infinite; -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  @keyframes drift { to { background-position: 200% center; } }
+  p { max-width:500px; color:var(--fg-dim); line-height:1.65; font-weight:300; font-size: 18px; }
+  #about { position:fixed; inset:0; z-index:10; background:rgba(0,0,0,0.85); backdrop-filter:blur(30px); display:none; flex-direction:column; align-items:center; justify-content:center; pointer-events:auto; opacity:0; transition:0.4s; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<div id="about" onclick="this.style.opacity='0'; setTimeout(()=>this.style.display='none',400)">
+  <div style="max-width:400px; text-align:center; padding: 20px;">
+    <h2 style="font-family:'Syne'; margin-bottom:20px; font-size: 32px;">Why SpotJoy?</h2>
+    <p style="margin-bottom: 24px;">Sometimes a domain name is just a garden that needs to grow on its own. There is no roadmap, only the flow of pixels.</p>
+    <span style="font-size: 12px; letter-spacing: 2px; color: var(--cyan);">CLOSE</span>
+  </div>
+</div>
+
+<div class="ui">
+  <nav>
+    <div class="logo"><div class="dot"></div>SpotJoy</div>
+    <a href="javascript:void(0)" onclick="const a=document.getElementById('about'); a.style.display='flex'; setTimeout(()=>a.style.opacity='1',10)">About</a>
+  </nav>
+  
+  <section class="hero">
+    <h1>Discover Your<br><span class="glow">Spot of Joy</span></h1>
+    <p>Immerse yourself in a new dimension of experience. Where color meets emotion — and every moment sparks something extraordinary.</p>
+  </section>
+
+  <footer>
+    <span>&copy; <span id="year"></span> spotjoy.com</span>
+    <span style="font-size:10px; opacity:0.4; letter-spacing: 1px;">STILLNESS IN MOTION // CLICK TO SHIFT</span>
+  </footer>
+</div>
+
+<script>
+// WebGL 逻辑保持原样，仅根据需要微调了 Shader 细节
+const canvas = document.getElementById('canvas'), gl = canvas.getContext('webgl2');
+let time = 0, mouse = {x:0.5, y:0.5}, targetMouse = {x:0.5, y:0.5}, mode = 0;
+
+document.getElementById('year').innerText = new Date().getFullYear();
+
+const vert = `#version 300 es
+in vec2 p; void main(){ gl_Position=vec4(p,0,1); }`;
+
+const frag = `#version 300 es
+precision highp float;
+uniform float t, m; uniform vec2 r, mo; out vec4 c;
+float f(vec3 p){
+  float s=1., a=0.5;
+  for(int i=0; i<4; i++){
+    p += cos(p.zxy*1.1 + t*0.2);
+    s += a * dot(sin(p), cos(p.yzx));
+    p *= 1.8; a *= 0.5;
+  }
+  return s;
+}
+void main(){
+  vec2 uv = (gl_FragCoord.xy - 0.5*r)/r.y;
+  uv += (mo - 0.5) * 0.15; 
+  vec3 p = vec3(uv * 1.8, t * 0.08);
+  float v = f(p);
+  // 基于模式切换颜色组合
+  vec3 col = 0.5 + 0.5*cos(vec3(0,1,2)*1.2 + v + m*1.6);
+  c = vec4(col * (1.1 - length(uv)*0.6), 1);
+}`;
+
+function createShader(gl, src, type) {
+  const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return s;
+}
+
+const prog = gl.createProgram();
+gl.attachShader(prog, createShader(gl, vert, gl.VERTEX_SHADER));
+gl.attachShader(prog, createShader(gl, frag, gl.FRAGMENT_SHADER));
+gl.linkProgram(prog); gl.useProgram(prog);
+
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const pos = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(pos);
+gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+
+const ut = gl.getUniformLocation(prog, 't'), ur = gl.getUniformLocation(prog, 'r');
+const um = gl.getUniformLocation(prog, 'm'), uo = gl.getUniformLocation(prog, 'mo');
+
+window.onresize = () => {
+  canvas.width = innerWidth; canvas.height = innerHeight;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+};
+window.onresize();
+
+window.onmousemove = e => { targetMouse = {x: e.clientX/innerWidth, y: 1-e.clientY/innerHeight}; };
+window.onclick = e => { if(e.target.tagName === 'CANVAS') mode = (mode + 1) % 5; };
+
+function draw(now) {
+  time = now * 0.001;
+  mouse.x += (targetMouse.x - mouse.x) * 0.05;
+  mouse.y += (targetMouse.y - mouse.y) * 0.05;
+  gl.uniform1f(ut, time);
+  gl.uniform1f(um, mode);
+  gl.uniform2f(uo, mouse.x, mouse.y);
+  gl.uniform2f(ur, canvas.width, canvas.height);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script>
+</body>
+</html>
