@@ -69,12 +69,34 @@
       let countdownInterval;
       let audioCtx;
       let oscillator;
+      let timerWorker = null;
       const defaultMsg = document.getElementById("message").innerHTML;
       const startButton = document.getElementById("start-button");
       const stopButton = document.getElementById("stop-button");
       const countdownMinutesInput = document.getElementById("countdown-minutes");
       const countdownSecondsInput = document.getElementById("countdown-seconds");
       const quickButtons = document.querySelectorAll(".quick-btn");
+
+      function createTimerWorker() {
+        const workerCode = `
+          let timerId = null;
+          self.onmessage = function(e) {
+            if (e.data.action === 'start') {
+              if (timerId) clearInterval(timerId);
+              timerId = setInterval(() => {
+                self.postMessage({ type: 'tick' });
+              }, e.data.interval || 1000);
+            } else if (e.data.action === 'stop') {
+              if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+              }
+            }
+          };
+        `;
+        const blob = new Blob([workerCode], { type: 'application/javascript' });
+        return new Worker(URL.createObjectURL(blob));
+      }
 
       startButton.addEventListener("click", startCountdown);
       stopButton.addEventListener("click", stopTimer);
@@ -148,7 +170,18 @@
         stopButton.disabled = false;
 
         updateDisplay();
-        countdownInterval = setInterval(updateDisplay, 1000);
+
+        if (timerWorker) {
+          timerWorker.terminate();
+        }
+        timerWorker = createTimerWorker();
+        timerWorker.onmessage = function(e) {
+          if (e.data.type === 'tick') {
+            updateDisplay();
+          }
+        };
+        timerWorker.postMessage({ action: 'start', interval: 1000 });
+        countdownInterval = true;
 
         function updateDisplay() {
           const currentTime = Date.now();
@@ -232,14 +265,18 @@
       }
 
       function stopTimer() {
-        clearInterval(countdownInterval);
+        if (timerWorker) {
+          timerWorker.postMessage({ action: 'stop' });
+          timerWorker.terminate();
+          timerWorker = null;
+        }
+        countdownInterval = null;
         document.title = "Timer";
         document.getElementById("countdown").innerHTML = "";
         document.getElementById("message").innerHTML = defaultMsg;
         stopSound();
         startButton.disabled = false;
         stopButton.disabled = true;
-        // 重新显示输入框的值
         countdownMinutesInput.dispatchEvent(new Event("input"));
       }
 
