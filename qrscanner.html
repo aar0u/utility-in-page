@@ -99,7 +99,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-bottom: 18px;
+      margin-top: 16px;
     }
 
     .btn {
@@ -133,7 +133,6 @@
     #file { position: absolute; inline-size: 1px; block-size: 1px; opacity: 0; pointer-events: none; }
 
     .preview {
-      margin-top: 18px;
       min-height: 240px;
       display: grid;
       place-items: center;
@@ -239,13 +238,13 @@
         <p>Use your camera, drop in a screenshot, or paste from your clipboard. Results stay local in this browser.</p>
 
         <div id="drop" class="drop" tabindex="0" aria-label="Drop or paste image here">
+          <input id="file" type="file" accept="image/*">
+          <div id="preview" class="preview">No image selected yet. You can also press Ctrl+V here.</div>
           <div class="actions">
-            <button class="btn primary" id="cameraButton" type="button">Start camera</button>
+            <button class="btn primary" id="cameraButton" type="button">Turn camera on</button>
             <label class="btn" for="file">Choose image</label>
             <button class="btn" id="pasteButton" type="button">Paste from clipboard</button>
           </div>
-          <input id="file" type="file" accept="image/*">
-          <div id="preview" class="preview">No image selected yet. You can also press Ctrl+V here.</div>
         </div>
       </section>
 
@@ -316,6 +315,39 @@
       renderHistory();
     }
 
+    function showCode(code) {
+      const text = code.data.trim();
+      if (!text) {
+        setResult('QR code is empty.', false);
+        return false;
+      }
+      setResult(text, true);
+      save(text);
+      return true;
+    }
+
+    function showQrCrop(code) {
+      const points = Object.values(code.location);
+      const minX = Math.max(0, Math.min(...points.map((point) => point.x)));
+      const minY = Math.max(0, Math.min(...points.map((point) => point.y)));
+      const maxX = Math.min(canvas.width, Math.max(...points.map((point) => point.x)));
+      const maxY = Math.min(canvas.height, Math.max(...points.map((point) => point.y)));
+      const pad = Math.max(maxX - minX, maxY - minY) * 0.45;
+      const x = Math.max(0, minX - pad);
+      const y = Math.max(0, minY - pad);
+      const width = Math.min(canvas.width - x, maxX - minX + pad * 2);
+      const height = Math.min(canvas.height - y, maxY - minY + pad * 2);
+      const crop = document.createElement('canvas');
+      crop.width = width;
+      crop.height = height;
+      crop.getContext('2d').drawImage(canvas, x, y, width, height, 0, 0, width, height);
+      const img = new Image();
+      img.alt = 'Decoded QR crop';
+      img.src = crop.toDataURL('image/png');
+      preview.innerHTML = '';
+      preview.appendChild(img);
+    }
+
     function renderHistory() {
       const items = readHistory();
       historyList.innerHTML = '';
@@ -346,8 +378,7 @@
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(data.data, data.width, data.height);
       if (!code) return setResult('No QR code found in this image.', false);
-      setResult(code.data, true);
-      save(code.data);
+      if (showCode(code)) showQrCrop(code);
     }
 
     function scanCamera() {
@@ -358,20 +389,20 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const code = jsQR(data.data, data.width, data.height);
-        if (code) {
-          setResult(code.data, true);
-          save(code.data);
-          return stopCamera();
+        if (code && showCode(code)) {
+          showQrCrop(code);
+          return stopCamera(false);
         }
       }
       cameraFrame = requestAnimationFrame(scanCamera);
     }
 
-    function stopCamera() {
+    function stopCamera(showMessage = true) {
       cancelAnimationFrame(cameraFrame);
       if (stream) stream.getTracks().forEach((track) => track.stop());
+      if (showMessage && stream && preview.contains(video)) preview.textContent = 'Camera is off. Choose an image, paste one, or turn the camera on.';
       stream = null;
-      cameraButton.textContent = 'Start camera';
+      cameraButton.textContent = 'Turn camera on';
     }
 
     async function startCamera() {
@@ -383,7 +414,7 @@
         await video.play();
         preview.innerHTML = '';
         preview.appendChild(video);
-        cameraButton.textContent = 'Stop camera';
+        cameraButton.textContent = 'Turn camera off';
         result.className = 'result';
         result.textContent = 'Point your camera at a QR code.';
         scanCamera();
